@@ -26,10 +26,8 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Sajikan folder public secara statis
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Konfigurasi Multer untuk Upload Gambar Lokal
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -41,7 +39,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// Inisialisasi tabel database otomatis
 async function initDb() {
   try {
     await pool.query(`
@@ -63,7 +60,6 @@ async function initDb() {
 }
 initDb();
 
-// Health Check Endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'UP',
@@ -71,18 +67,51 @@ app.get('/health', (req, res) => {
   });
 });
 
-// READ: Menampilkan semua data
+// READ: Menampilkan semua data dengan dukungan Search & Filter
 app.get('/', async (req, res) => {
+  const { search, difficulty } = req.query;
   try {
-    const result = await pool.query('SELECT * FROM games ORDER BY id DESC');
-    res.render('index', { games: result.rows });
+    let query = 'SELECT * FROM games WHERE 1=1';
+    let params = [];
+    let paramIndex = 1;
+
+    if (search) {
+      query += ` AND (title ILIKE $${paramIndex} OR category ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    if (difficulty && difficulty !== 'Semua') {
+      query += ` AND difficulty = $${paramIndex}`;
+      params.push(difficulty);
+      paramIndex++;
+    }
+
+    query += ' ORDER BY id DESC';
+
+    const result = await pool.query(query, params);
+    
+    // Ambil statistik ringkasan untuk Dashboard
+    const statsResult = await pool.query(`
+      SELECT 
+        COUNT(*) AS total_games,
+        COALESCE(ROUND(AVG(duration)), 0) AS avg_duration
+      FROM games
+    `);
+    const stats = statsResult.rows[0];
+
+    res.render('index', { 
+      games: result.rows, 
+      stats, 
+      search: search || '', 
+      selectedDifficulty: difficulty || 'Semua' 
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-// CREATE: Menambah data baru dengan upload file
 app.post('/games', upload.single('image'), async (req, res) => {
   const { title, category, duration, difficulty, review } = req.body;
   
@@ -102,7 +131,6 @@ app.post('/games', upload.single('image'), async (req, res) => {
   }
 });
 
-// UPDATE: Halaman Form Edit
 app.get('/games/edit/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -117,7 +145,6 @@ app.get('/games/edit/:id', async (req, res) => {
   }
 });
 
-// UPDATE: Proses Simpan Perubahan
 app.post('/games/edit/:id', upload.single('image'), async (req, res) => {
   const { id } = req.params;
   const { title, category, duration, difficulty, review, current_image } = req.body;
@@ -136,7 +163,6 @@ app.post('/games/edit/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-// DELETE: Hapus data
 app.post('/games/delete/:id', async (req, res) => {
   const { id } = req.params;
   try {
