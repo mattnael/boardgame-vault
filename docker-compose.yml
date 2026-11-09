@@ -1,37 +1,32 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:15-alpine
-    container_name: boardgame_db
-    restart: always
+    container_name: boardgame_postgres
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: boardgame_vault_db
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - app-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - app-network
 
   redis:
     image: redis:7-alpine
     container_name: boardgame_redis
-    restart: always
     ports:
       - "6379:6379"
-    networks:
-      - app-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 5
+    networks:
+      - app-network
 
   app:
     build: .
@@ -39,27 +34,28 @@ services:
     restart: always
     ports:
       - "3000:3000"
-    volumes:
-      - ./public/uploads:/app/public/uploads
     environment:
+      - PORT=3000
       - DB_HOST=db
       - DB_PORT=5432
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - PORT=3000
+      - DB_USER=postgres
+      - DB_PASSWORD=secretpassword
+      - DB_NAME=boardgame_vault_db
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./public/uploads:/app/public/uploads
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
     networks:
-      - app-net
+      - app-network
 
 volumes:
   pgdata:
 
 networks:
-  app-net:
+  app-network:
     driver: bridge

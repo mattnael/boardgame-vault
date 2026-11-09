@@ -1,5 +1,6 @@
 const express = require('express');
 const { Pool } = require('pg');
+const { createClient } = require('redis');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
@@ -14,6 +15,22 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || 'secretpassword',
   database: process.env.DB_NAME || 'boardgame_vault_db',
 });
+
+// Konfigurasi Redis Client
+const redisClient = createClient({
+  socket: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || 6379
+  }
+});
+
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+
+async function startRedis() {
+  await redisClient.connect();
+  console.log('Terhubung ke Redis Cache.');
+}
+startRedis();
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -59,14 +76,24 @@ async function initDb() {
 }
 initDb();
 
-app.get('/health', (req, res) => {
+// Healthcheck Endpoint (termasuk status Redis & Database)
+app.get('/health', async (req, res) => {
+  let redisStatus = 'UP';
+  try {
+    await redisClient.ping();
+  } catch (e) {
+    redisStatus = 'DOWN';
+  }
+
   res.status(200).json({
     status: 'UP',
+    database: 'CONNECTED',
+    redis_cache: redisStatus,
     timestamp: new Date().toISOString()
   });
 });
 
-// READ: Menampilkan semua data dengan Search, Filter, & Sorting
+// READ: Beranda dengan Redis Cache untuk Statistik
 app.get('/', async (req, res) => {
   const { search, difficulty, sort } = req.query;
   try {
@@ -86,7 +113,6 @@ app.get('/', async (req, res) => {
       paramIndex++;
     }
 
-    // Logika Sorting
     if (sort === 'title_asc') {
       query += ' ORDER BY title ASC';
     } else if (sort === 'title_desc') {
@@ -96,18 +122,29 @@ app.get('/', async (req, res) => {
     } else if (sort === 'duration_desc') {
       query += ' ORDER BY duration DESC';
     } else {
-      query += ' ORDER BY id DESC'; // Default terbaru
+      query += ' ORDER BY id DESC';
     }
 
     const result = await pool.query(query, params);
     
-    const statsResult = await pool.query(`
-      SELECT 
-        COUNT(*) AS total_games,
-        COALESCE(ROUND(AVG(duration)), 0) AS avg_duration
-      FROM games
-    `);
-    const stats = statsResult.rows[0];
+    // Cek Cache Redis untuk Statistik Dashboard
+    let stats;
+    const cacheKey = 'dashboard_stats';
+    const cachedStats = await redisClient.get(cacheKey);
+
+    if (cachedStats) {
+      stats = JSON.parse(cachedStats);
+    } else {
+      const statsResult = await pool.query(`
+        SELECT 
+          COUNT(*) AS total_games,
+          COALESCE(ROUND(AVG(duration)), 0) AS avg_duration
+        FROM games
+      `);
+      stats = statsResult.rows[0];
+      // Simpan ke Redis selama 60 detik
+      await redisClient.setEx(cacheKey, 60, JSON.stringify(stats));
+    }
 
     res.render('index', { 
       games: result.rows, 
@@ -122,12 +159,12 @@ app.get('/', async (req, res) => {
   }
 });
 
-// CREATE: Halaman Form Tambah Game (GET /games/new)
+// CREATE: Halaman Tambah
 app.get('/games/new', (req, res) => {
   res.render('new');
 });
 
-// CREATE: Proses Simpan Data Baru
+// CREATE: Simpan Data & Hapus Cache agar Statistik Ter-update
 app.post('/games', upload.single('image'), async (req, res) => {
   const { title, category, duration, difficulty, review } = req.body;
   
@@ -140,6 +177,8 @@ app.post('/games', upload.single('image'), async (req, res) => {
       'INSERT INTO games (title, category, duration, difficulty, image_url, review) VALUES ($1, $2, $3, $4, $5, $6)',
       [title, category, parseInt(duration, 10), difficulty, finalImage, review || '']
     );
+    // Invalidate/Hapus cache statistik saat ada data baru
+    await redisClient.del('dashboard_stats');
     res.status(201).redirect('/');
   } catch (err) {
     console.error(err.message);
@@ -147,7 +186,6 @@ app.post('/games', upload.single('image'), async (req, res) => {
   }
 });
 
-// UPDATE: Halaman Form Edit
 app.get('/games/edit/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -162,7 +200,6 @@ app.get('/games/edit/:id', async (req, res) => {
   }
 });
 
-// UPDATE: Proses Simpan Perubahan
 app.post('/games/edit/:id', upload.single('image'), async (req, res) => {
   const { id } = req.params;
   const { title, category, duration, difficulty, review, current_image } = req.body;
@@ -174,6 +211,7 @@ app.post('/games/edit/:id', upload.single('image'), async (req, res) => {
       'UPDATE games SET title = $1, category = $2, duration = $3, difficulty = $4, image_url = $5, review = $6 WHERE id = $7',
       [title, category, parseInt(duration, 10), difficulty, finalImage, review || '', id]
     );
+    await redisClient.del('dashboard_stats');
     res.redirect('/');
   } catch (err) {
     console.error(err.message);
@@ -181,11 +219,11 @@ app.post('/games/edit/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-// DELETE: Hapus data
 app.post('/games/delete/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await pool.query('DELETE FROM games WHERE id = $1', [id]);
+    await redisClient.del('dashboard_stats');
     res.redirect('/');
   } catch (err) {
     console.error(err.message);
