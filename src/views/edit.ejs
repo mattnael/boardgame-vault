@@ -3,57 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Boardgame - Boardgame Vault</title>
+    <title>Edit - Boardgame Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
-    <main class="max-w-xl mx-auto space-y-6">
-        <header class="border-b border-slate-800 pb-4 flex justify-between items-center">
+<body class="bg-[#141414] text-white min-h-screen p-6 font-sans">
+    <main class="max-w-xl mx-auto space-y-6 pt-10">
+        <header class="border-b border-zinc-800 pb-4 flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-bold tracking-tight text-indigo-400">Edit Koleksi Boardgame</h1>
-                <p class="text-sm text-slate-400">Perbarui informasi ulasan permainan papan.</p>
+                <h1 class="text-2xl font-black text-red-600">Edit Koleksi</h1>
+                <p class="text-xs text-zinc-400">Perbarui informasi game.</p>
             </div>
-            <a href="/" class="text-sm px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition">&larr; Kembali</a>
+            <a href="/" class="text-xs px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded">&larr; Kembali</a>
         </header>
 
-        <form action="/games/edit/<%= game.id %>" method="POST" class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+        <form action="/games/edit/<%= game.id %>" method="POST" enctype="multipart/form-data" class="bg-zinc-900 border border-zinc-800 p-6 rounded-xl space-y-4">
+            <input type="hidden" name="current_image" value="<%= game.image_url %>">
+
             <div>
-                <label class="block text-sm font-medium text-slate-300 mb-1">Judul Game</label>
+                <label class="block text-xs font-medium text-zinc-400 uppercase mb-1">Judul Game</label>
                 <input type="text" name="title" value="<%= game.title %>" required 
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-red-600">
             </div>
             
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Kategori</label>
+                    <label class="block text-xs font-medium text-zinc-400 uppercase mb-1">Kategori</label>
                     <input type="text" name="category" value="<%= game.category %>" required 
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+                        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-red-600">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Durasi (Menit)</label>
+                    <label class="block text-xs font-medium text-zinc-400 uppercase mb-1">Durasi (Menit)</label>
                     <input type="number" name="duration" value="<%= game.duration %>" required 
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+                        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-red-600">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 uppercase mb-1">Kesulitan</label>
+                    <select name="difficulty" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-red-600">
+                        <option value="Mudah" <%= game.difficulty === 'Mudah' ? 'selected' : '' %>>Mudah</option>
+                        <option value="Sedang" <%= game.difficulty === 'Sedang' ? 'selected' : '' %>>Sedang</option>
+                        <option value="Berat" <%= game.difficulty === 'Berat' ? 'selected' : '' %>>Berat</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 uppercase mb-1">Ganti Poster (Opsional)</label>
+                    <input type="file" name="image" accept="image/*" 
+                        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 text-xs text-zinc-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-red-600 file:text-white">
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-300 mb-1">Tingkat Kesulitan</label>
-                <select name="difficulty" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
-                    <option value="Mudah" <%= game.difficulty === 'Mudah' ? 'selected' : '' %>>Mudah</option>
-                    <option value="Sedang" <%= game.difficulty === 'Sedang' ? 'selected' : '' %>>Sedang</option>
-                    <option value="Berat" <%= game.difficulty === 'Berat' ? 'selected' : '' %>>Berat</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-1">Ulasan Singkat</label>
+                <label class="block text-xs font-medium text-zinc-400 uppercase mb-1">Ulasan Singkat</label>
                 <textarea name="review" rows="3" 
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition"><%= game.review %></textarea>
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-red-600"><%= game.review %></textarea>
             </div>
 
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">Simpan Perubahan</button>
-                <a href="/" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-center rounded-xl transition">Batal</a>
+                <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-sm transition">Simpan Perubahan</button>
+                <a href="/" class="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-center rounded-lg text-sm transition">Batal</a>
             </div>
         </form>
     </main>

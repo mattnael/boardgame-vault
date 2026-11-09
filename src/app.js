@@ -1,6 +1,8 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -18,6 +20,27 @@ app.use(express.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Pastikan folder public/uploads ada
+const uploadDir = path.join(__dirname, '../public/uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Sajikan folder public secara statis
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Konfigurasi Multer untuk Upload Gambar Lokal
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
+
 // Inisialisasi tabel database otomatis
 async function initDb() {
   try {
@@ -28,6 +51,7 @@ async function initDb() {
         category VARCHAR(100) NOT NULL,
         duration INT NOT NULL,
         difficulty VARCHAR(50) NOT NULL,
+        image_url TEXT,
         review TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -39,7 +63,7 @@ async function initDb() {
 }
 initDb();
 
-// Health Check Endpoint (Wajib Soal)
+// Health Check Endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'UP',
@@ -47,7 +71,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// READ: Menampilkan semua data (GET /)
+// READ: Menampilkan semua data
 app.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM games ORDER BY id DESC');
@@ -58,13 +82,18 @@ app.get('/', async (req, res) => {
   }
 });
 
-// CREATE: Menambah data baru (POST /games)
-app.post('/games', async (req, res) => {
+// CREATE: Menambah data baru dengan upload file
+app.post('/games', upload.single('image'), async (req, res) => {
   const { title, category, duration, difficulty, review } = req.body;
+  
+  let finalImage = req.file 
+    ? `/uploads/${req.file.filename}` 
+    : `https://picsum.photos/seed/${encodeURIComponent(title || 'boardgame')}/800/600`;
+
   try {
     await pool.query(
-      'INSERT INTO games (title, category, duration, difficulty, review) VALUES ($1, $2, $3, $4, $5)',
-      [title, category, parseInt(duration, 10), difficulty, review || '']
+      'INSERT INTO games (title, category, duration, difficulty, image_url, review) VALUES ($1, $2, $3, $4, $5, $6)',
+      [title, category, parseInt(duration, 10), difficulty, finalImage, review || '']
     );
     res.status(201).redirect('/');
   } catch (err) {
@@ -73,7 +102,7 @@ app.post('/games', async (req, res) => {
   }
 });
 
-// UPDATE: Halaman Form Edit (GET /games/edit/:id)
+// UPDATE: Halaman Form Edit
 app.get('/games/edit/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -88,14 +117,17 @@ app.get('/games/edit/:id', async (req, res) => {
   }
 });
 
-// UPDATE: Proses Simpan Perubahan (POST /games/edit/:id)
-app.post('/games/edit/:id', async (req, res) => {
+// UPDATE: Proses Simpan Perubahan
+app.post('/games/edit/:id', upload.single('image'), async (req, res) => {
   const { id } = req.params;
-  const { title, category, duration, difficulty, review } = req.body;
+  const { title, category, duration, difficulty, review, current_image } = req.body;
+  
+  let finalImage = req.file ? `/uploads/${req.file.filename}` : current_image;
+
   try {
     await pool.query(
-      'UPDATE games SET title = $1, category = $2, duration = $3, difficulty = $4, review = $5 WHERE id = $6',
-      [title, category, parseInt(duration, 10), difficulty, review || '', id]
+      'UPDATE games SET title = $1, category = $2, duration = $3, difficulty = $4, image_url = $5, review = $6 WHERE id = $7',
+      [title, category, parseInt(duration, 10), difficulty, finalImage, review || '', id]
     );
     res.redirect('/');
   } catch (err) {
@@ -104,7 +136,7 @@ app.post('/games/edit/:id', async (req, res) => {
   }
 });
 
-// DELETE: Hapus data (POST /games/delete/:id)
+// DELETE: Hapus data
 app.post('/games/delete/:id', async (req, res) => {
   const { id } = req.params;
   try {

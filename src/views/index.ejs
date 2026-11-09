@@ -6,87 +6,134 @@
     <title>Boardgame Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
-    <main class="max-w-4xl mx-auto space-y-8">
-        <header class="border-b border-slate-800 pb-4">
-            <h1 class="text-3xl font-bold tracking-tight text-indigo-400">Boardgame Vault</h1>
-            <p class="text-sm text-slate-400 mt-1">Katalog koleksi dan pelacak ulasan permainan papan.</p>
-        </header>
+<body class="bg-[#141414] text-white min-h-screen font-sans">
+    
+    <header class="sticky top-0 z-50 bg-[#141414]/90 backdrop-blur px-6 py-4 flex justify-between items-center border-b border-zinc-800">
+        <h1 class="text-red-600 font-black text-2xl tracking-tighter uppercase">Boardgame Vault</h1>
+        <nav class="hidden md:flex gap-4 text-sm text-zinc-300">
+            <a href="#" class="hover:text-white transition">Beranda</a>
+            <a href="#katalog" class="hover:text-white transition">Koleksi</a>
+            <a href="#tambah" class="hover:text-white transition">Tambah Baru</a>
+        </nav>
+    </header>
 
-        <!-- Form Tambah Data -->
-        <section class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-            <h2 class="text-lg font-semibold text-slate-200">Tambah Koleksi Baru</h2>
-            <form action="/games" method="POST" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Judul Game</label>
-                        <input type="text" name="title" required placeholder="Cth: Catan, Wingspan" 
-                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Kategori</label>
-                        <input type="text" name="category" required placeholder="Cth: Strategi, Keluarga, RPG" 
-                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Durasi (Menit)</label>
-                        <input type="number" name="duration" required placeholder="90" 
-                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Tingkat Kesulitan</label>
-                        <select name="difficulty" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
-                            <option value="Mudah">Mudah</option>
-                            <option value="Sedang">Sedang</option>
-                            <option value="Berat">Berat</option>
-                        </select>
+    <main class="space-y-12 pb-16">
+        
+        <!-- Hero Banner -->
+        <% if (games.length > 0) { %>
+            <% const featured = games[0]; %>
+            <div class="relative w-full h-[400px] bg-zinc-900 overflow-hidden shadow-2xl">
+                <img src="<%= featured.image_url %>" alt="<%= featured.title %>" class="w-full h-full object-cover opacity-50">
+                <div class="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent"></div>
+                <div class="absolute bottom-10 left-6 md:left-12 max-w-xl space-y-3">
+                    <span class="bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded uppercase"><%= featured.category %></span>
+                    <h2 class="text-4xl font-extrabold text-white"><%= featured.title %></h2>
+                    <p class="text-sm text-zinc-300 italic">"<%= featured.review || 'Belum ada ulasan.' %>"</p>
+                    <div class="flex items-center gap-3 text-xs text-zinc-400 font-semibold">
+                        <span class="text-red-500 font-bold uppercase">Featured</span>
+                        <span>⏱️ <%= featured.duration %> Menit</span>
+                        <span class="border border-zinc-600 px-1.5 py-0.5 rounded text-[10px]"><%= featured.difficulty %></span>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Ulasan Singkat</label>
-                    <textarea name="review" rows="2" placeholder="Tulis kesan atau ulasan singkat..." 
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition"></textarea>
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition shadow-lg shadow-indigo-600/20">Simpan Koleksi</button>
-            </form>
-        </section>
-
-        <!-- Daftar Koleksi & Tombol CRUD (Edit / Hapus) -->
-        <section class="space-y-4">
-            <h2 class="text-xl font-bold text-slate-200">Daftar Koleksi</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <% if (games.length === 0) { %>
-                    <p class="text-slate-500 italic col-span-2 text-center py-8 bg-slate-900/50 rounded-2xl border border-slate-800/50">Belum ada data board game tersimpan.</p>
-                <% } else { %>
-                    <% games.forEach(game => { %>
-                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between space-y-4 shadow-lg">
-                            <div class="space-y-2">
-                                <div class="flex justify-between items-start">
-                                    <h3 class="font-bold text-lg text-indigo-400"><%= game.title %></h3>
-                                    <span class="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-slate-700"><%= game.category %></span>
-                                </div>
-                                <div class="text-sm text-slate-400 flex items-center gap-3">
-                                    <span>⏱️ <%= game.duration %> Menit</span>
-                                    <span>•</span>
-                                    <span>📊 Kesulitan: <strong class="text-slate-300"><%= game.difficulty %></strong></span>
-                                </div>
-                                <% if (game.review) { %>
-                                    <p class="text-sm text-slate-300 italic bg-slate-950/50 p-3 rounded-xl border border-slate-800/60">"<%= game.review %>"</p>
-                                <% } %>
-                            </div>
-                            <div class="flex justify-end gap-2 pt-3 border-t border-slate-800/80">
-                                <a href="/games/edit/<%= game.id %>" class="px-3.5 py-1.5 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 text-xs font-medium rounded-lg transition border border-amber-500/20">Edit</a>
-                                <form action="/games/delete/<%= game.id %>" method="POST" onsubmit="return confirm('Yakin ingin menghapus game ini dari koleksi?');">
-                                    <button type="submit" class="px-3.5 py-1.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-medium rounded-lg transition border border-rose-500/20">Hapus</button>
-                                </form>
-                            </div>
-                        </div>
-                    <% }) %>
-                <% } %>
             </div>
-        </section>
+        <% } %>
+
+        <div class="max-w-7xl mx-auto px-6 space-y-12">
+
+            <!-- Katalog Grid -->
+            <section id="katalog" class="space-y-4">
+                <h3 class="text-xl font-bold text-zinc-200">Pilihan Teratas Koleksi Untukmu</h3>
+                
+                <% if (games.length === 0) { %>
+                    <div class="text-zinc-500 italic py-12 text-center bg-zinc-900/40 rounded-xl border border-zinc-800">
+                        Belum ada data game tersimpan.
+                    </div>
+                <% } else { %>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <% games.forEach(game => { %>
+                            <div class="group bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 flex flex-col justify-between hover:border-zinc-600 transition">
+                                <div class="relative h-56 w-full bg-zinc-950 overflow-hidden">
+                                    <img src="<%= game.image_url %>" alt="<%= game.title %>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                                    <span class="absolute top-2 right-2 bg-black/70 text-[10px] px-2 py-0.5 rounded text-zinc-300"><%= game.category %></span>
+                                </div>
+                                <div class="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                                    <div>
+                                        <h4 class="font-bold text-sm text-zinc-100 truncate"><%= game.title %></h4>
+                                        <p class="text-xs text-zinc-400 mt-1">⏱️ <%= game.duration %>m • <%= game.difficulty %></p>
+                                    </div>
+                                    <div class="flex items-center justify-between pt-3 border-t border-zinc-800">
+                                        <a href="/games/edit/<%= game.id %>" class="text-xs text-zinc-400 hover:text-white font-medium">Edit</a>
+                                        <form action="/games/delete/<%= game.id %>" method="POST" onsubmit="return confirm('Hapus game ini?');">
+                                            <button type="submit" class="text-xs text-red-400 hover:text-red-300 font-medium">Hapus</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </section>
+
+            <!-- Form Tambah Game (Dengan Upload File) -->
+            <section id="tambah" class="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-2xl mx-auto space-y-6">
+                <div class="border-b border-zinc-800 pb-4">
+                    <h3 class="text-lg font-bold text-white">Tambah Koleksi Baru</h3>
+                    <p class="text-xs text-zinc-400">Unggah poster gambar game langsung dari perangkatmu.</p>
+                </div>
+
+                <form action="/games" method="POST" enctype="multipart/form-data" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">Judul Game</label>
+                            <input type="text" name="title" required placeholder="Cth: UNO" 
+                                class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">Kategori</label>
+                            <input type="text" name="category" required placeholder="Cth: Card Game" 
+                                class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-600">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">Durasi (Menit)</label>
+                            <input type="number" name="duration" required placeholder="15" 
+                                class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">Kesulitan</label>
+                            <select name="difficulty" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-600">
+                                <option value="Mudah">Mudah</option>
+                                <option value="Sedang">Sedang</option>
+                                <option value="Berat">Berat</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">Upload Poster Gambar</label>
+                        <input type="file" name="image" accept="image/*" 
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-zinc-400 file:mr-4 file:py-1.5 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-red-600 file:text-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-400 uppercase mb-1">Ulasan Singkat</label>
+                        <textarea name="review" rows="2" placeholder="Tulis ulasan..." 
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-600"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg text-sm transition">
+                        Tambahkan ke Vault
+                    </button>
+                </form>
+            </section>
+
+        </div>
     </main>
+
+    <footer class="border-t border-zinc-800 py-8 text-center text-xs text-zinc-500">
+        Boardgame Vault • UTS Cloud Services.
+    </footer>
 </body>
 </html>
