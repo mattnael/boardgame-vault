@@ -32,29 +32,29 @@ Containerization: Docker & Docker Compose (Bridge network, environment isolation
 
 Anyone can run this project locally using the following steps:
 
-Clone the repository:
-git clone https://github.com/mattnael/boardgame-vault.git
-cd boardgame-vault
+1. Clone the repository:
+``git clone https://github.com/mattnael/boardgame-vault.git
+cd boardgame-vault``
 
-Configure Environment Variables:
-Copy the example environment file and adjust values if necessary:
-cp .env.example .env
+2. Configure Environment Variables:
+``Copy the example environment file and adjust values if necessary:
+cp .env.example .env``
 
 Run the application using Docker Compose:
 Ensure Docker Desktop is running, then execute the following command (all-in-one command):
-docker compose up -d --build
+``docker compose up -d --build``
 
 Access the Application in Your Browser:
 Open your favorite browser and visit:
-http://localhost:3000
+``http://localhost:3000``
 
 Stopping the Application:
 
 To stop containers without deleting database data:
-docker compose down
+``docker compose down``
 
 To stop and completely wipe container data/volumes:
-docker compose down -v
+``docker compose down -v``
 
 ================================================================================
 4. ARTICLE & VIDEO DEMO LINKS
