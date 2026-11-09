@@ -20,7 +20,6 @@ app.use(express.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Pastikan folder public/uploads ada
 const uploadDir = path.join(__dirname, '../public/uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -67,9 +66,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// READ: Menampilkan semua data dengan dukungan Search & Filter
+// READ: Menampilkan semua data dengan Search, Filter, & Sorting
 app.get('/', async (req, res) => {
-  const { search, difficulty } = req.query;
+  const { search, difficulty, sort } = req.query;
   try {
     let query = 'SELECT * FROM games WHERE 1=1';
     let params = [];
@@ -87,11 +86,21 @@ app.get('/', async (req, res) => {
       paramIndex++;
     }
 
-    query += ' ORDER BY id DESC';
+    // Logika Sorting
+    if (sort === 'title_asc') {
+      query += ' ORDER BY title ASC';
+    } else if (sort === 'title_desc') {
+      query += ' ORDER BY title DESC';
+    } else if (sort === 'duration_asc') {
+      query += ' ORDER BY duration ASC';
+    } else if (sort === 'duration_desc') {
+      query += ' ORDER BY duration DESC';
+    } else {
+      query += ' ORDER BY id DESC'; // Default terbaru
+    }
 
     const result = await pool.query(query, params);
     
-    // Ambil statistik ringkasan untuk Dashboard
     const statsResult = await pool.query(`
       SELECT 
         COUNT(*) AS total_games,
@@ -104,7 +113,8 @@ app.get('/', async (req, res) => {
       games: result.rows, 
       stats, 
       search: search || '', 
-      selectedDifficulty: difficulty || 'Semua' 
+      selectedDifficulty: difficulty || 'Semua',
+      selectedSort: sort || 'newest'
     });
   } catch (err) {
     console.error(err.message);
@@ -112,6 +122,12 @@ app.get('/', async (req, res) => {
   }
 });
 
+// CREATE: Halaman Form Tambah Game (GET /games/new)
+app.get('/games/new', (req, res) => {
+  res.render('new');
+});
+
+// CREATE: Proses Simpan Data Baru
 app.post('/games', upload.single('image'), async (req, res) => {
   const { title, category, duration, difficulty, review } = req.body;
   
@@ -131,6 +147,7 @@ app.post('/games', upload.single('image'), async (req, res) => {
   }
 });
 
+// UPDATE: Halaman Form Edit
 app.get('/games/edit/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -145,6 +162,7 @@ app.get('/games/edit/:id', async (req, res) => {
   }
 });
 
+// UPDATE: Proses Simpan Perubahan
 app.post('/games/edit/:id', upload.single('image'), async (req, res) => {
   const { id } = req.params;
   const { title, category, duration, difficulty, review, current_image } = req.body;
@@ -163,6 +181,7 @@ app.post('/games/edit/:id', upload.single('image'), async (req, res) => {
   }
 });
 
+// DELETE: Hapus data
 app.post('/games/delete/:id', async (req, res) => {
   const { id } = req.params;
   try {
