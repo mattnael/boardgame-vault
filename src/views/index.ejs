@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boardgame Vault</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6">
+    <main class="max-w-4xl mx-auto space-y-8">
+        <header class="border-b border-slate-800 pb-4">
+            <h1 class="text-3xl font-bold tracking-tight">Boardgame Vault</h1>
+            <p class="text-slate-400 text-sm mt-1">Katalog koleksi dan pelacak ulasan permainan papan.</p>
+        </header>
+
+        <!-- Form Tambah Game -->
+        <section class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-sm">
+            <h2 class="text-xl font-semibold mb-4">Tambah Koleksi Baru</h2>
+            <form action="/api/games" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Judul Game</label>
+                    <input type="text" name="title" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Kategori</label>
+                    <input type="text" name="category" required placeholder="Strategi, Keluarga, RPG" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Durasi (Menit)</label>
+                    <input type="number" name="duration" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Tingkat Kesulitan</label>
+                    <select name="difficulty" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                        <option value="Mudah">Mudah</option>
+                        <option value="Sedang">Sedang</option>
+                        <option value="Berat">Berat</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Ulasan Singkat</label>
+                    <textarea name="review" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"></textarea>
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg transition">Simpan Koleksi</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Daftar Koleksi Game -->
+        <section class="space-y-4">
+            <h2 class="text-xl font-semibold">Daftar Koleksi</h2>
+            <% if (games.length === 0) { %>
+                <p class="text-slate-500 text-center py-8">Belum ada data board game tersimpan.</p>
+            <% } else { %>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <% games.forEach(game => { %>
+                        <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl space-y-2">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-bold text-lg text-indigo-400"><%= game.title %></h3>
+                                <span class="bg-slate-700 text-xs px-2.5 py-1 rounded-full"><%= game.category %></span>
+                            </div>
+                            <p class="text-sm text-slate-300">Durasi: <%= game.duration %> Menit | Kesulitan: <%= game.difficulty %></p>
+                            <p class="text-sm text-slate-400 italic">"<%= game.review %>"</p>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } %>
+        </section>
+    </main>
+</body>
+</html>
