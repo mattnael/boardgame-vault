@@ -1,6 +1,24 @@
-version: '3.8'
-
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: boardgame_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   app:
     build: .
     container_name: boardgame_app
@@ -8,35 +26,15 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - PORT=3000
       - DB_HOST=db
-      - DB_USER=postgres
-      - DB_PASSWORD=secretpassword
-      - DB_NAME=boardgame_db
       - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - PORT=3000
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - app-net
-
-  db:
-    image: postgres:15-alpine
-    container_name: boardgame_db
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: secretpassword
-      POSTGRES_DB: boardgame_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d boardgame_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
     networks:
       - app-net
 

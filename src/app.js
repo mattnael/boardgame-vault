@@ -5,13 +5,12 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Konfigurasi Database Pool
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'secretpassword',
+  database: process.env.DB_NAME || 'boardgame_vault_db',
 });
 
 app.use(express.urlencoded({ extended: true }));
@@ -19,8 +18,8 @@ app.use(express.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Inisialisasi Tabel Database saat Startup
-async function initDB() {
+// Inisialisasi tabel database otomatis
+async function initDb() {
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS games (
@@ -33,63 +32,90 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('Database tabel games berhasil disiapkan.');
+    console.log('Database tabel games siap.');
   } catch (err) {
-    console.error('Gagal menginisialisasi database:', err);
+    console.error('Gagal inisialisasi database:', err.message);
   }
 }
-initDB();
+initDb();
 
-// 1. Endpoint Health Check (Wajib)
+// Health Check Endpoint (Wajib Soal)
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'UP', timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: 'UP',
+    timestamp: new Date().toISOString()
+  });
 });
 
-// 2. Endpoint Halaman Utama (Frontend + Tampil Data GET)
+// READ: Menampilkan semua data (GET /)
 app.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM games ORDER BY id DESC');
     res.render('index', { games: result.rows });
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Terjadi kesalahan pada server.');
+    console.error(err.message);
+    res.status(500).send('Server Error');
   }
 });
 
-// 3. Endpoint API JSON Baca Data (GET)
-app.get('/api/games', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM games ORDER BY id DESC');
-    res.status(200).json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 4. Endpoint Tulis Data (POST)
-app.post('/api/games', async (req, res) => {
+// CREATE: Menambah data baru (POST /games)
+app.post('/games', async (req, res) => {
   const { title, category, duration, difficulty, review } = req.body;
-  if (!title || !category || !duration || !difficulty) {
-    return res.status(400).json({ error: 'Field wajib tidak boleh kosong.' });
-  }
-
   try {
-    const query = `
-      INSERT INTO games (title, category, duration, difficulty, review)
-      VALUES ($1, $2, $3, $4, $5) RETURNING *;
-    `;
-    const values = [title, category, parseInt(duration, 10), difficulty, review || ''];
-    const newGame = await pool.query(query, values);
-    
-    if (req.headers['content-type'] && req.headers['content-type'].includes('application/x-www-form-urlencoded')) {
-      return res.redirect('/');
-    }
-    res.status(201).json(newGame.rows[0]);
+    await pool.query(
+      'INSERT INTO games (title, category, duration, difficulty, review) VALUES ($1, $2, $3, $4, $5)',
+      [title, category, parseInt(duration, 10), difficulty, review || '']
+    );
+    res.status(201).redirect('/');
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err.message);
+    res.status(500).send('Gagal menambah data.');
+  }
+});
+
+// UPDATE: Halaman Form Edit (GET /games/edit/:id)
+app.get('/games/edit/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('SELECT * FROM games WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).send('Data tidak ditemukan');
+    }
+    res.render('edit', { game: result.rows[0] });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// UPDATE: Proses Simpan Perubahan (POST /games/edit/:id)
+app.post('/games/edit/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, category, duration, difficulty, review } = req.body;
+  try {
+    await pool.query(
+      'UPDATE games SET title = $1, category = $2, duration = $3, difficulty = $4, review = $5 WHERE id = $6',
+      [title, category, parseInt(duration, 10), difficulty, review || '', id]
+    );
+    res.redirect('/');
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Gagal memperbarui data.');
+  }
+});
+
+// DELETE: Hapus data (POST /games/delete/:id)
+app.post('/games/delete/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM games WHERE id = $1', [id]);
+    res.redirect('/');
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Gagal menghapus data.');
   }
 });
 
 app.listen(port, () => {
-  console.log(`Server berjalan pada port ${port}`);
+  console.log(`Server running on port ${port}`);
 });

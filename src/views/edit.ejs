@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Boardgame - Boardgame Vault</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
+    <main class="max-w-xl mx-auto space-y-6">
+        <header class="border-b border-slate-800 pb-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-indigo-400">Edit Koleksi Boardgame</h1>
+                <p class="text-sm text-slate-400">Perbarui informasi ulasan permainan papan.</p>
+            </div>
+            <a href="/" class="text-sm px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition">&larr; Kembali</a>
+        </header>
+
+        <form action="/games/edit/<%= game.id %>" method="POST" class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1">Judul Game</label>
+                <input type="text" name="title" value="<%= game.title %>" required 
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Kategori</label>
+                    <input type="text" name="category" value="<%= game.category %>" required 
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Durasi (Menit)</label>
+                    <input type="number" name="duration" value="<%= game.duration %>" required 
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1">Tingkat Kesulitan</label>
+                <select name="difficulty" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+                    <option value="Mudah" <%= game.difficulty === 'Mudah' ? 'selected' : '' %>>Mudah</option>
+                    <option value="Sedang" <%= game.difficulty === 'Sedang' ? 'selected' : '' %>>Sedang</option>
+                    <option value="Berat" <%= game.difficulty === 'Berat' ? 'selected' : '' %>>Berat</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1">Ulasan Singkat</label>
+                <textarea name="review" rows="3" 
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition"><%= game.review %></textarea>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">Simpan Perubahan</button>
+                <a href="/" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-center rounded-xl transition">Batal</a>
+            </div>
+        </form>
+    </main>
+</body>
+</html>
